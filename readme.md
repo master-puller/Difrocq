@@ -1,6 +1,8 @@
 # Difroc
 A simple tool for testing standalone programs with test cases.
 Will only test using stdin and stdout against separate files. If difroc does not output anything when running a command, all the test cases have passed.
+Due to it's versatility, this allows for debugging a program using other debugging utilities. One such example is valgrind (which has proved extremely useful)
+`difroc valgrind ./a.out [opts]`
 
 # About
 Wrote this little script to test my c++ programs in a course I was doing, as it became tedious
@@ -38,3 +40,7 @@ Installs difroc to `/usr/local/bin` (it's only one file, but its convenient)
 
 `difroc -U`
 ditto but removes.
+
+`difroc valgrind ./a.out hello world`
+valgrind a.out hello world
+with inputs piped from ./tests/
