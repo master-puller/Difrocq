@@ -27,21 +27,22 @@ usage() {
   echo "  useful for testing standalone programs"
   echo "DIFROC is NOT SANITIZED. DO NOT USE WITH UNTRUSTED INPUT"
   echo "Options:"
-  echo "  -d  --dir [DIR]             directory of test files"
+  echo "  -d  (dir) [DIR]             directory of test files"
   echo "          defaults to \"./tests/\""
-  echo "  -i  --inext [INEXT]          input file extension"
+  echo "  -i  (inext) [INEXT]          input file extension"
   echo "          defaults to \".in\""
-  echo "  -I  --install               installs difrocq to /usr/local/bin"
-  echo "  -U  --uninstall              removes difroc from /usr/local/bin"
-  echo "  -f  --force                 force run even if overwrites will occur"
-  echo "  -r  --runext [RUNEXT]        run file extension"
+  echo "  -I  (install)               installs difrocq to /usr/local/bin"
+  echo "  -U  (uninstall)              removes difroc from /usr/local/bin"
+  echo "  -f  (force)                 force run even if overwrites will occur"
+  echo "  -r  (runext) [RUNEXT]        run file extension"
   echo "          default: \".run\""
-  echo "  -o  --outext [OUTEXT]       output (test expected) file extension"
+  echo "  -o  (outext) [OUTEXT]       output (test expected) file extension"
   echo "          default: \".out\""
-  echo "  -c  --cleanup                removes run files afterward"
-  echo "  -q  --quiet                 only outputs which files mismatch"
-  echo "  -a  --args-input             passes file contents as an argument"
+  echo "  -c  (cleanup)                removes run files afterward"
+  echo "  -q  (quiet)                 only outputs which files mismatch"
+  echo "  -a  (args-input)             passes file contents as an argument"
   echo "                                  catted to args, no stdin"
+  echo "  -g  (grep)                  greps run output for expected output"
   echo
   echo "Example: difroc -c -d ./tests/example/ cat"
 }
@@ -82,42 +83,47 @@ out_ext=".out"
 clean_up=false
 quiet=false
 args_input=false
+grep_out=false
 
 options_passed=false
 
-while getopts "d:i:IUfr:o:cqu" opt; do
+while getopts "d:i:IUfr:o:cquag" opt; do
   options_passed=true
   case $opt in
-    d|--dir)
+    d)
       dir_test="$OPTARG"
       ;;
-    i|--inext)
+    i)
       in_ext="$OPTARG"
       ;;
-    I|--install)
+    I)
       install
       ;;
-    U|--uninstall)
+    U)
       uninstall
       ;;
-    f|--force)
+    f)
       force=true
       ;;
-    r|--runext)
+    r)
       run_ext="$OPTARG"
       ;;
-    o|--outext)
+    o)
       out_ext="$OPTARG"
       ;;
-    c|--cleanup)
+    c)
       clean_up=true
       ;;
-    q|--quiet)
+    q)
       quiet=true
       ;;
-    a|--args-input)
-      quiet=true
+    a)
+      args_input=true
       ;;
+    g)  
+      grep_out=true
+      ;;
+
     \?)
       echo "Option is not DIFROC (Invalid option): -$OPTARG"
       usage
@@ -154,49 +160,76 @@ else
   exit 0
 fi
 
-cmdopts=()
+orig_cmdopts=()
 while [[ "$#" -gt 0 ]]; do
-  cmdopts+=("$1")
+  orig_cmdopts+=("$1")
   shift
 done
 
-if [ $args_input = true ]; then 
-  while IFS= read -r line; do
-    cmdopts+=("$line")
-  done < "$file"
-fi
+# echo "base options: $orig_cmdopts"
+# echo main loop
 
 for file in "$dir_test"*"$in_ext"; do
+  if [ $quiet = false ]; then
+    echo reading $file
+  fi
   if [ ! -f "$file" ]; then
+    echo "attempted break"
     break 2
   fi
   base_name="${file/$in_ext/}"
   run_name="${base_name}${run_ext}"
   expected_name="${base_name}${out_ext}"
+  # echo $expected_name
   if [ -e $run_name ] && [ $force = false ]; then
     echo file "$run_name" exists! preventing overwrite.
     echo use --force if you really want to overwrite!
     exit 1
   fi
+  # cmdopts=("${orig_cmdopts[@]}")
+  # echo "$args_input"
+  # echo "$cmdopts"
   # run the command
-
   if [ $args_input = false ]; then 
-    "$command" "${cmdopts[@]}" < "$file" > "$run_name"
+    ("$command" "${orig_cmdopts[@]}" < "$file" > "$run_name")
   else
-    "$command" "${cmdopts[@]}" > "$run_name" 
+    # echo "regular loop"
+    ("$command" "${orig_cmdopts[@]}$(cat $file)" > "$run_name")
   fi
-  diff_res="$(diff $run_name $expected_name)"
-  if [ $clean_up = true ]; then
-    rm -f -- "$run_name"
+  
+  if [ $? -ne 0 ]; then
+    echo "cmd failed"
   fi
-  if [ -n "$diff_res" ]; then
-    if ! $quiet; then
-      echo =======================
-      echo "Mismatch with $file: "
-      echo "$diff_res"
-    else
-      echo "$file"
+
+  # echo post cmd
+  # echo $clean_up
+  if [ $grep_out = false ]; then 
+    diff_res=$(diff "$run_name" "$expected_name" || true)
+    if [ -n "$diff_res" ]; then
+      if ! $quiet; then
+        echo =======================
+        echo "Mismatch with $file: "
+        echo "$diff_res"
+      else
+        echo "$file"
+      fi
+    fi
+  else 
+    grep_res=$(grep $(cat $expected_name) < "$run_name" || true)
+    if [ -z "$grep_res" ]; then
+      if $quiet; then
+        echo "$file"
+      else
+        echo =======================
+        echo "No matches found $file: "
+        echo "$grep_res"
+      fi
     fi
   fi
+  if [ $clean_up = true ]; then
+    rm -f "$run_name"
+  fi
+
+  # echo end
 done
 # for file in "$test_dir"/*.in; do

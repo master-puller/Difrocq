@@ -18,22 +18,22 @@ Usage: `$0 [OPTION] cmd [CMDOPTS]`
 
 ## Options:
 ```
-    -d  --dir [DIR]             directory of test files
+    -d  (dir) [DIR]             directory of test files
           defaults to "./tests/"
-    -i  --inext [INEXT]          input file extension
+    -i  (inext) [INEXT]          input file extension
             defaults to ".in"
-    -I  --install               installs difrocq to /usr/local/bin
-    -U  --uninstall              removes difroc from /usr/local/bin
-    -f  --force                 force run even if overwrites will occur
-    -r  --runext [RUNEXT]        run file extension
+    -I  (install)               installs difrocq to /usr/local/bin
+    -U  (uninstall)              removes difroc from /usr/local/bin
+    -f  (force)                 force run even if overwrites will occur
+    -r  (runext) [RUNEXT]        run file extension
             default: ".run"
-    -o  --outext [OUTEXT]       output (test expected) file extension
+    -o  (outext) [OUTEXT]       output (test expected) file extension
             default: ".out"
-    -c  --cleanup                removes run files afterward
-    -q  --quiet                 only outputs which files mismatch
-    -a  --args-input             passes file contents as an argument"
+    -c  (cleanup)                removes run files afterward
+    -q  (quiet)                 only outputs which files mismatch
+    -a  (args-input)             passes file contents as an argument"
                                     catted to args, no stdin"
-
+    -g  (grep)                  greps run output for expected output
 ```
 ### Examples
 `difroc -c -d ./tests/example/ cat`
